@@ -1,4 +1,4 @@
-public class UseCase1HotelBookingApp{
+public class HotelBookingApp{
     public static void main(String[] args){
 
     }
