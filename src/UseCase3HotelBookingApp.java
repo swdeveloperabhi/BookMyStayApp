@@ -1,3 +1,4 @@
+import java.util.HashMap;
 abstract class Room {
 
     private int beds;
@@ -35,7 +36,6 @@ class SingleRoom extends Room {
         return "Single Room";
     }
 }
-
 class DoubleRoom extends Room {
 
     public DoubleRoom() {
@@ -46,7 +46,6 @@ class DoubleRoom extends Room {
         return "Double Room";
     }
 }
-
 class SuiteRoom extends Room {
 
     public SuiteRoom() {
@@ -57,7 +56,38 @@ class SuiteRoom extends Room {
         return "Suite Room";
     }
 }
-public class UseCase2HotelBookingApp {
+
+
+class RoomInventory {
+
+    private HashMap<String, Integer> inventory;
+
+    public RoomInventory() {
+        inventory = new HashMap<>();
+
+        // Initialize availability
+        inventory.put("Single Room", 5);
+        inventory.put("Double Room", 3);
+        inventory.put("Suite Room", 2);
+    }
+
+    public int getAvailability(String roomType) {
+        return inventory.getOrDefault(roomType, 0);
+    }
+
+    public void updateAvailability(String roomType, int newCount) {
+        inventory.put(roomType, newCount);
+    }
+
+    public void printInventory() {
+        System.out.println("Current Room Inventory:");
+        for (String roomType : inventory.keySet()) {
+            System.out.println(roomType + " Available: " + inventory.get(roomType));
+        }
+        System.out.println();
+    }
+}
+public class UseCase3HotelBookingApp {
 
     public static void main(String[] args) {
 
@@ -67,21 +97,22 @@ public class UseCase2HotelBookingApp {
         Room doubleRoom = new DoubleRoom();
         Room suite = new SuiteRoom();
 
-        int singleAvailable = 5;
-        int doubleAvailable = 3;
-        int suiteAvailable = 2;
+        RoomInventory inventory = new RoomInventory();
 
-        printRoom(single, singleAvailable);
-        printRoom(doubleRoom, doubleAvailable);
-        printRoom(suite, suiteAvailable);
+        printRoom(single, inventory);
+        printRoom(doubleRoom, inventory);
+        printRoom(suite, inventory);
+
+        inventory.printInventory();
     }
 
-    public static void printRoom(Room room, int available) {
+    public static void printRoom(Room room, RoomInventory inventory) {
+
         System.out.println(room.getRoomType() + ":");
         System.out.println("Beds: " + room.getBeds());
         System.out.println("Size: " + room.getSize() + " sqft");
         System.out.println("Price per night: " + room.getPrice());
-        System.out.println("Available: " + available);
+        System.out.println("Available: " + inventory.getAvailability(room.getRoomType()));
         System.out.println();
     }
 }
