@@ -3,6 +3,7 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.Set;
 
 abstract class Room {
 
@@ -273,6 +274,47 @@ class AddOnService {
     }
 }
 
+class InvalidBookingException extends Exception {
+
+    public InvalidBookingException(String message) {
+        super(message);
+    }
+}
+
+class BookingValidator {
+
+    private RoomInventory inventory;
+    private Set<String> existingReservationIds;
+
+    public BookingValidator(RoomInventory inventory, Set<String> existingReservationIds) {
+        this.inventory = inventory;
+        this.existingReservationIds = existingReservationIds;
+    }
+
+    public void validateBooking(String reservationId, String roomType) throws InvalidBookingException {
+
+        // Check for empty or null reservation ID
+        if (reservationId == null || reservationId.trim().isEmpty()) {
+            throw new InvalidBookingException("Reservation ID cannot be empty.");
+        }
+
+        // Check for duplicate reservation ID
+        if (existingReservationIds.contains(reservationId)) {
+            throw new InvalidBookingException("Duplicate reservation ID: " + reservationId);
+        }
+
+        // Check valid room type
+        if (inventory.getAvailability(roomType) < 0) {
+            throw new InvalidBookingException("Invalid room type: " + roomType);
+        }
+
+        // Check inventory availability
+        if (inventory.getAvailability(roomType) == 0) {
+            throw new InvalidBookingException("No " + roomType + " available for booking.");
+        }
+    }
+}
+
 class AddOnServiceManager {
 
     private Map<String, List<AddOnService>> reservationServices = new HashMap<>();
@@ -326,20 +368,36 @@ public class UseCase8HotelBookingApp {
 
     public static void main(String[] args) {
 
-        BookingHistory history = new BookingHistory();
+        RoomInventory inventory = new RoomInventory();
+        Set<String> allocatedIds = new HashSet<>();
 
-        Reservation r1 = new Reservation("S-1", "Alice", "Single Room");
-        Reservation r2 = new Reservation("D-2", "Bob", "Double Room");
-        Reservation r3 = new Reservation("SU-3", "Charlie", "Suite Room");
+        BookingValidator validator = new BookingValidator(inventory, allocatedIds);
 
-        // Booking confirmed → store in history
-        history.addReservation(r1);
-        history.addReservation(r2);
-        history.addReservation(r3);
+        // Example bookings
+        String[][] bookingRequests = {
+                {"S-1", "Single Room"},
+                {"D-2", "Double Room"},
+                {"", "Suite Room"},        // Invalid: empty ID
+                {"SU-3", "Penthouse"},    // Invalid: wrong room type
+                {"S-1", "Single Room"}     // Invalid: duplicate ID
+        };
 
-        BookingReportService reportService = new BookingReportService();
+        for (String[] request : bookingRequests) {
+            String reservationId = request[0];
+            String roomType = request[1];
 
-        reportService.printAllBookings(history);
-        reportService.generateSummary(history);
+            try {
+                validator.validateBooking(reservationId, roomType);
+
+                // Simulate allocation
+                inventory.decrementRoom(roomType);
+                allocatedIds.add(reservationId);
+
+                System.out.println("Booking confirmed: " + reservationId + " → " + roomType);
+
+            } catch (InvalidBookingException e) {
+                System.out.println("Booking failed: " + e.getMessage());
+            }
+        }
     }
 }
