@@ -212,21 +212,94 @@ class BookingService {
     }
 }
 
-public class UseCase6HotelBookingApp {
+class AddOnService {
+
+    private String serviceName;
+    private double price;
+
+    public AddOnService(String serviceName, double price) {
+        this.serviceName = serviceName;
+        this.price = price;
+    }
+
+    public String getServiceName() {
+        return serviceName;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+}
+
+class AddOnServiceManager {
+
+    private Map<String, List<AddOnService>> reservationServices = new HashMap<>();
+
+    public void addService(String reservationId, AddOnService service) {
+
+        reservationServices
+                .computeIfAbsent(reservationId, k -> new ArrayList<>())
+                .add(service);
+
+        System.out.println(service.getServiceName()
+                + " added to reservation " + reservationId);
+    }
+
+    public void showServices(String reservationId) {
+
+        List<AddOnService> services = reservationServices.get(reservationId);
+
+        if (services == null) {
+            System.out.println("No services selected.");
+            return;
+        }
+
+        System.out.println("\nServices for reservation " + reservationId);
+
+        for (AddOnService s : services) {
+            System.out.println("- " + s.getServiceName()
+                    + " : ₹" + s.getPrice());
+        }
+    }
+
+    public double calculateServiceCost(String reservationId) {
+
+        List<AddOnService> services = reservationServices.get(reservationId);
+
+        if (services == null) {
+            return 0;
+        }
+
+        double total = 0;
+
+        for (AddOnService s : services) {
+            total += s.getPrice();
+        }
+
+        return total;
+    }
+}
+
+public class UseCase7HotelBookingApp {
 
     public static void main(String[] args) {
 
-        RoomInventory inventory = new RoomInventory();
-        BookingRequestQueue queue = new BookingRequestQueue();
+        String reservationId = "S-101";
 
-        // Guest booking requests
-        queue.addRequest(new Reservation("Alice", "Single Room"));
-        queue.addRequest(new Reservation("Bob", "Double Room"));
-        queue.addRequest(new Reservation("Charlie", "Suite Room"));
-        queue.addRequest(new Reservation("David", "Suite Room"));
+        AddOnService breakfast = new AddOnService("Breakfast", 500);
+        AddOnService airportPickup = new AddOnService("Airport Pickup", 1200);
+        AddOnService spa = new AddOnService("Spa Access", 2000);
 
-        BookingService bookingService = new BookingService(inventory);
+        AddOnServiceManager manager = new AddOnServiceManager();
 
-        bookingService.processBookings(queue);
+        manager.addService(reservationId, breakfast);
+        manager.addService(reservationId, airportPickup);
+        manager.addService(reservationId, spa);
+
+        manager.showServices(reservationId);
+
+        double totalCost = manager.calculateServiceCost(reservationId);
+
+        System.out.println("\nTotal Add-On Cost: ₹" + totalCost);
     }
 }
