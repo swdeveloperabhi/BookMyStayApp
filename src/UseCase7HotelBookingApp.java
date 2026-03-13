@@ -111,14 +111,21 @@ class RoomSearchService {
         }
     }
 }
+
 class Reservation {
 
+    private String reservationId;
     private String guestName;
     private String roomType;
 
-    public Reservation(String guestName, String roomType) {
+    public Reservation(String reservationId, String guestName, String roomType) {
+        this.reservationId = reservationId;
         this.guestName = guestName;
         this.roomType = roomType;
+    }
+
+    public String getReservationId() {
+        return reservationId;
     }
 
     public String getGuestName() {
@@ -129,7 +136,42 @@ class Reservation {
         return roomType;
     }
 }
+class BookingHistory {
 
+    private List<Reservation> confirmedBookings = new ArrayList<>();
+
+    public void addReservation(Reservation reservation) {
+        confirmedBookings.add(reservation);
+    }
+
+    public List<Reservation> getAllReservations() {
+        return confirmedBookings;
+    }
+}
+class BookingReportService {
+
+    public void printAllBookings(BookingHistory history) {
+
+        System.out.println("\nConfirmed Booking History:\n");
+
+        for (Reservation r : history.getAllReservations()) {
+
+            System.out.println(
+                    "Reservation ID: " + r.getReservationId() +
+                            " | Guest: " + r.getGuestName() +
+                            " | Room: " + r.getRoomType()
+            );
+        }
+    }
+
+    public void generateSummary(BookingHistory history) {
+
+        int totalBookings = history.getAllReservations().size();
+
+        System.out.println("\nBooking Summary Report");
+        System.out.println("Total Confirmed Bookings: " + totalBookings);
+    }
+}
 
 
 class BookingRequestQueue {
@@ -284,22 +326,20 @@ public class UseCase7HotelBookingApp {
 
     public static void main(String[] args) {
 
-        String reservationId = "S-101";
+        BookingHistory history = new BookingHistory();
 
-        AddOnService breakfast = new AddOnService("Breakfast", 500);
-        AddOnService airportPickup = new AddOnService("Airport Pickup", 1200);
-        AddOnService spa = new AddOnService("Spa Access", 2000);
+        Reservation r1 = new Reservation("S-1", "Alice", "Single Room");
+        Reservation r2 = new Reservation("D-2", "Bob", "Double Room");
+        Reservation r3 = new Reservation("SU-3", "Charlie", "Suite Room");
 
-        AddOnServiceManager manager = new AddOnServiceManager();
+        // Booking confirmed → store in history
+        history.addReservation(r1);
+        history.addReservation(r2);
+        history.addReservation(r3);
 
-        manager.addService(reservationId, breakfast);
-        manager.addService(reservationId, airportPickup);
-        manager.addService(reservationId, spa);
+        BookingReportService reportService = new BookingReportService();
 
-        manager.showServices(reservationId);
-
-        double totalCost = manager.calculateServiceCost(reservationId);
-
-        System.out.println("\nTotal Add-On Cost: ₹" + totalCost);
+        reportService.printAllBookings(history);
+        reportService.generateSummary(history);
     }
 }
