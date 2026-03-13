@@ -322,7 +322,7 @@ class AddOnServiceManager {
     }
 }
 
-public class UseCase7HotelBookingApp {
+public class UseCase8HotelBookingApp {
 
     public static void main(String[] args) {
 
