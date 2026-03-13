@@ -1,4 +1,7 @@
+import java.util.List;
 import java.util.HashMap;
+import java.util.ArrayList;
+
 abstract class Room {
 
     private int beds;
@@ -25,7 +28,6 @@ abstract class Room {
 
     public abstract String getRoomType();
 }
-
 class SingleRoom extends Room {
 
     public SingleRoom() {
@@ -63,9 +65,9 @@ class RoomInventory {
     private HashMap<String, Integer> inventory;
 
     public RoomInventory() {
+
         inventory = new HashMap<>();
 
-        // Initialize availability
         inventory.put("Single Room", 5);
         inventory.put("Double Room", 3);
         inventory.put("Suite Room", 2);
@@ -74,45 +76,61 @@ class RoomInventory {
     public int getAvailability(String roomType) {
         return inventory.getOrDefault(roomType, 0);
     }
+}
 
-    public void updateAvailability(String roomType, int newCount) {
-        inventory.put(roomType, newCount);
+
+class RoomSearchService {
+
+    private RoomInventory inventory;
+
+    public RoomSearchService(RoomInventory inventory) {
+        this.inventory = inventory;
     }
 
-    public void printInventory() {
-        System.out.println("Current Room Inventory:");
-        for (String roomType : inventory.keySet()) {
-            System.out.println(roomType + " Available: " + inventory.get(roomType));
+    public void searchAvailableRooms(List<Room> rooms) {
+
+        System.out.println("Available Rooms:\n");
+
+        for (Room room : rooms) {
+
+            int available = inventory.getAvailability(room.getRoomType());
+
+            // Defensive check
+            if (available > 0) {
+
+                System.out.println(room.getRoomType() + ":");
+                System.out.println("Beds: " + room.getBeds());
+                System.out.println("Size: " + room.getSize() + " sqft");
+                System.out.println("Price per night: " + room.getPrice());
+                System.out.println("Available: " + available);
+                System.out.println();
+            }
         }
-        System.out.println();
     }
 }
-public class UseCase3HotelBookingApp {
+
+
+public class UseCase4HotelBookingApp {
 
     public static void main(String[] args) {
 
-        System.out.println("Hotel Room Initialization\n");
-
+        // Room domain objects
         Room single = new SingleRoom();
         Room doubleRoom = new DoubleRoom();
         Room suite = new SuiteRoom();
 
+        List<Room> rooms = new ArrayList<>();
+        rooms.add(single);
+        rooms.add(doubleRoom);
+        rooms.add(suite);
+
+        // Central inventory
         RoomInventory inventory = new RoomInventory();
 
-        printRoom(single, inventory);
-        printRoom(doubleRoom, inventory);
-        printRoom(suite, inventory);
+        // Search service
+        RoomSearchService searchService = new RoomSearchService(inventory);
 
-        inventory.printInventory();
-    }
-
-    public static void printRoom(Room room, RoomInventory inventory) {
-
-        System.out.println(room.getRoomType() + ":");
-        System.out.println("Beds: " + room.getBeds());
-        System.out.println("Size: " + room.getSize() + " sqft");
-        System.out.println("Price per night: " + room.getPrice());
-        System.out.println("Available: " + inventory.getAvailability(room.getRoomType()));
-        System.out.println();
+        // Guest searches for rooms
+        searchService.searchAvailableRooms(rooms);
     }
 }
