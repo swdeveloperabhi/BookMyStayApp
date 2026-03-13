@@ -63,7 +63,6 @@ class SuiteRoom extends Room {
 }
 
 class RoomInventory {
-
     private HashMap<String, Integer> inventory = new HashMap<>();
 
     public RoomInventory() {
@@ -79,6 +78,11 @@ class RoomInventory {
     public void decrementRoom(String roomType) {
         int count = inventory.get(roomType);
         inventory.put(roomType, count - 1);
+    }
+
+    public void incrementRoom(String roomType) {
+        int count = inventory.getOrDefault(roomType, 0);
+        inventory.put(roomType, count + 1);
     }
 }
 
@@ -143,6 +147,15 @@ class BookingHistory {
 
     public void addReservation(Reservation reservation) {
         confirmedBookings.add(reservation);
+    }
+
+    public void markCancelled(String reservationId) {
+        for (Reservation r : confirmedBookings) {
+            if (r.getReservationId().equals(reservationId)) {
+                // optional: flag or print message
+                System.out.println("Booking history updated: " + reservationId + " marked as cancelled.");
+            }
+        }
     }
 
     public List<Reservation> getAllReservations() {
@@ -364,40 +377,100 @@ class AddOnServiceManager {
     }
 }
 
-public class UseCase9HotelBookingApp {
+class InvalidCancellationException extends Exception {
+    public InvalidCancellationException(String message) {
+        super(message);
+    }
+}
 
-    public static void main(String[] args) {
+class CancellationService {
+
+    private RoomInventory inventory;
+    private Set<String> activeReservations;
+    private Map<String, String> reservationToRoomType; // reservationId -> roomType
+    private Stack<String> releasedRoomIds = new Stack<>();
+    private BookingHistory history;
+
+    public CancellationService(RoomInventory inventory,
+                               Set<String> activeReservations,
+                               Map<String, String> reservationToRoomType,
+                               BookingHistory history) {
+        this.inventory = inventory;
+        this.activeReservations = activeReservations;
+        this.reservationToRoomType = reservationToRoomType;
+        this.history = history;
+    }
+
+    public void cancelReservation(String reservationId) throws InvalidCancellationException {
+
+        if (!activeReservations.contains(reservationId)) {
+            throw new InvalidCancellationException(
+                    "Cannot cancel reservation: " + reservationId + " does not exist or already cancelled.");
+        }
+
+        // Identify room type
+        String roomType = reservationToRoomType.get(reservationId);
+
+        // Restore inventory
+        inventory.incrementRoom(roomType);
+
+        // Track released room ID
+        releasedRoomIds.push(reservationId);
+
+        // Remove reservation from active
+        activeReservations.remove(reservationId);
+
+        // Update booking history (optional: mark as cancelled)
+        history.markCancelled(reservationId);
+
+        System.out.println("Cancellation successful for " + reservationId + " (" + roomType + ")");
+    }
+
+    public void showReleasedRoomIds() {
+        System.out.println("Recently released Room IDs (LIFO): " + releasedRoomIds);
+    }
+}
+
+public class UseCase10HotelBookingApp {
+
+    public static void main(String[] args) throws InvalidCancellationException {
 
         RoomInventory inventory = new RoomInventory();
-        Set<String> allocatedIds = new HashSet<>();
+        BookingHistory history = new BookingHistory();
 
-        BookingValidator validator = new BookingValidator(inventory, allocatedIds);
+        // Active reservations & mapping
+        Set<String> activeReservations = new HashSet<>();
+        Map<String, String> reservationToRoomType = new HashMap<>();
 
-        // Example bookings
-        String[][] bookingRequests = {
-                {"S-1", "Single Room"},
-                {"D-2", "Double Room"},
-                {"", "Suite Room"},        // Invalid: empty ID
-                {"SU-3", "Penthouse"},    // Invalid: wrong room type
-                {"S-1", "Single Room"}     // Invalid: duplicate ID
-        };
+        // Confirm bookings
+        String r1 = "S-1";
+        String r2 = "D-2";
 
-        for (String[] request : bookingRequests) {
-            String reservationId = request[0];
-            String roomType = request[1];
+        activeReservations.add(r1);
+        activeReservations.add(r2);
 
-            try {
-                validator.validateBooking(reservationId, roomType);
+        reservationToRoomType.put(r1, "Single Room");
+        reservationToRoomType.put(r2, "Double Room");
 
-                // Simulate allocation
-                inventory.decrementRoom(roomType);
-                allocatedIds.add(reservationId);
+        history.addReservation(new Reservation(r1, "Alice", "Single Room"));
+        history.addReservation(new Reservation(r2, "Bob", "Double Room"));
 
-                System.out.println("Booking confirmed: " + reservationId + " → " + roomType);
+        // Cancellation Service
+        CancellationService cancelService =
+                new CancellationService(inventory, activeReservations, reservationToRoomType, history);
 
-            } catch (InvalidBookingException e) {
-                System.out.println("Booking failed: " + e.getMessage());
-            }
+        // Perform cancellations
+        cancelService.cancelReservation(r2);   // Cancel Bob's reservation
+        cancelService.cancelReservation(r1);   // Cancel Alice's reservation
+
+        // Attempt invalid cancellation
+        try {
+            cancelService.cancelReservation("S-3"); // Non-existent
+        } catch (InvalidCancellationException e) {
+            System.out.println(e.getMessage());
         }
+
+        // Display rollback stack
+        cancelService.showReleasedRoomIds();
     }
 }
